@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>Dokümanlar</h1>
+  <form class="search" method="get">
+    <input name="q" value="{{ q }}" placeholder="Kod, ad, bölüm ara">
+    <button>Ara</button>
+  </form>
+</div>
+<table>
+  <thead><tr><th>Kod</th><th>Ad</th><th>Tip</th><th>Bölüm</th><th>Durum</th><th>Güncel Rev.</th><th></th></tr></thead>
+  <tbody>
+  {% for doc in documents %}
+    <tr>
+      <td><strong>{{ doc.code }}</strong></td>
+      <td>{{ doc.title }}</td>
+      <td>{{ doc.doc_type }}</td>
+      <td>{{ doc.department }}</td>
+      <td><span class="badge {{ doc.status }}">{{ doc.status }}</span></td>
+      <td>{% if doc.current_revision_id %}#{{ doc.current_revision_id }}{% else %}-{% endif %}</td>
+      <td><a class="btn small" href="/documents/{{ doc.id }}">Aç</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="muted">Henüz doküman yok.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

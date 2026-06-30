@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QMS Portal</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a href="/">QMS Portal</a></div>
+  {% if user %}
+  <nav>
+    <a href="/">Dokümanlar</a>
+    {% if user.role in ['admin','quality','editor'] %}<a href="/documents/new">Yeni Doküman</a>{% endif %}
+    {% if user.role in ['admin','quality'] %}<a href="/audit">Audit Log</a>{% endif %}
+    {% if user.role == 'admin' %}<a href="/users">Kullanıcılar</a>{% endif %}
+    <a href="/logout">Çıkış</a>
+  </nav>
+  <span class="user">{{ user.full_name }} / {{ user.role }}</span>
+  {% endif %}
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

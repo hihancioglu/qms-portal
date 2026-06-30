@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ doc.code }} - {{ doc.title }}</h1>
+    <p class="muted">{{ doc.doc_type }} / {{ doc.department }}{% if doc.process %} / {{ doc.process }}{% endif %}</p>
+  </div>
+  <span class="badge {{ doc.status }}">{{ doc.status }}</span>
+</div>
+
+<section class="card">
+  <h2>Revizyonlar</h2>
+  <table>
+    <thead><tr><th>Rev.</th><th>Dosya</th><th>Durum</th><th>Not</th><th>Tarih</th><th>İşlem</th></tr></thead>
+    <tbody>
+    {% for rev in doc.revisions|sort(attribute='created_at', reverse=True) %}
+      <tr>
+        <td>Rev.{{ rev.revision_no }}</td>
+        <td>{{ rev.source_filename }}</td>
+        <td><span class="badge {{ rev.status }}">{{ rev.status }}</span></td>
+        <td>{{ rev.change_note or '' }}</td>
+        <td>{{ rev.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="actions">
+          <a class="btn small" href="/revisions/{{ rev.id }}/download">İndir</a>
+          {% if user.role in ['admin','quality','editor'] and rev.status in ['draft','review'] %}<a class="btn small" href="/documents/{{ doc.id }}/edit/{{ rev.id }}">Online Düzenle</a>{% endif %}
+          {% if user.role in ['admin','quality','editor'] and rev.status == 'draft' %}<form method="post" action="/revisions/{{ rev.id }}/send-review"><button class="small">İncelemeye Gönder</button></form>{% endif %}
+          {% if user.role in ['admin','quality'] and rev.status == 'approved' %}
+          <form method="post" action="/revisions/{{ rev.id }}/publish" class="inline-form">
+            <input type="date" name="effective_date" title="Yürürlük tarihi">
+            <input type="date" name="review_due_date" title="Gözden geçirme">
+            <button class="small">Yayınla</button>
+          </form>
+          {% endif %}
+          {% if rev.status == 'published' %}<form method="post" action="/revisions/{{ rev.id }}/read"><button class="small">Okudum</button></form>{% endif %}
+        </td>
+      </tr>
+      {% if rev.approvals %}
+      <tr><td></td><td colspan="5">
+        <div class="approval-list">
+        {% for a in rev.approvals|sort(attribute='step_order') %}
+          <div class="approval-item">
+            <strong>{{ a.step_order }}. {{ a.step_name }}</strong> - <span class="badge {{ a.status }}">{{ a.status }}</span>
+            {% if a.approver %} / {{ a.approver.full_name }} / {{ a.acted_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+            {% if user.role in ['admin','quality','approver'] and a.status == 'pending' and rev.status == 'review' %}
+            <form method="post" action="/approvals/{{ a.id }}/act" class="inline-form">
+              <input name="note" placeholder="Not">
+              <button name="action" value="approve" class="small">Onayla</button>
+              <button name="action" value="reject" class="small danger">Reddet</button>
+            </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+        </div>
+      </td></tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if user.role in ['admin','quality','editor'] %}
+<section class="card">
+  <h2>Yeni Revizyon</h2>
+  <form method="post" action="/documents/{{ doc.id }}/revision" enctype="multipart/form-data" class="inline-form">
+    <input name="change_note" placeholder="Değişiklik notu" required>
+    <input type="file" name="file" required>
+    <button>Revizyon Oluştur</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Okudum Takibi</h2>
+  {% if receipts %}
+  <table><thead><tr><th>Kullanıcı</th><th>Tarih</th></tr></thead><tbody>
+  {% for r in receipts %}<tr><td>{{ r.user.full_name }}</td><td>{{ r.read_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% else %}<p class="muted">Güncel yayın için henüz okudum kaydı yok.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Audit Log</h2>
+  <table><thead><tr><th>Tarih</th><th>Kullanıcı</th><th>İşlem</th><th>Detay</th></tr></thead><tbody>
+  {% for l in audit_logs %}<tr><td>{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ l.user.full_name if l.user else '-' }}</td><td>{{ l.action }}</td><td>{{ l.details }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="editor-head">
+  <div><strong>{{ doc.code }} Rev.{{ rev.revision_no }}</strong> - {{ rev.source_filename }}</div>
+  <a class="btn small" href="/documents/{{ doc.id }}">Dokümana Dön</a>
+</div>
+<div id="placeholder" class="editor-box"></div>
+<script src="{{ onlyoffice_url }}/web-apps/apps/api/documents/api.js"></script>
+<script>
+  const config = {{ config | tojson }};
+  window.docEditor = new DocsAPI.DocEditor("placeholder", config);
+</script>
+{% endblock %}

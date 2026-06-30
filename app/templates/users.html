@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Kullanıcılar</h1>
+<section class="card">
+  <form method="post" action="/users" class="grid-form">
+    <label>Kullanıcı adı<input name="username" required></label>
+    <label>Ad Soyad<input name="full_name" required></label>
+    <label>Şifre<input name="password" type="password" required></label>
+    <label>Rol
+      <select name="role">
+        <option value="viewer">viewer</option>
+        <option value="editor">editor</option>
+        <option value="approver">approver</option>
+        <option value="quality">quality</option>
+        <option value="admin">admin</option>
+      </select>
+    </label>
+    <label>Bölüm<input name="department"></label>
+    <button>Oluştur</button>
+  </form>
+</section>
+<table>
+  <thead><tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Rol</th><th>Bölüm</th><th>Aktif</th></tr></thead>
+  <tbody>{% for u in users %}<tr><td>{{ u.username }}</td><td>{{ u.full_name }}</td><td>{{ u.role }}</td><td>{{ u.department or '' }}</td><td>{{ u.is_active }}</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

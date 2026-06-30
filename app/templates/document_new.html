@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Yeni Doküman</h1>
+<div class="card">
+<form method="post" action="/documents" enctype="multipart/form-data" class="grid-form">
+  <label>Doküman Kodu<input name="code" placeholder="PR-KLT-001" required></label>
+  <label>Doküman Adı<input name="title" required></label>
+  <label>Doküman Tipi<input name="doc_type" placeholder="Prosedür / Talimat / Form" required></label>
+  <label>Bölüm<input name="department" required></label>
+  <label>Süreç<input name="process"></label>
+  <label>Değişiklik Notu<textarea name="change_note">İlk yayın</textarea></label>
+  <label>Kaynak Dosya<input type="file" name="file" required></label>
+  <button type="submit">Oluştur</button>
+</form>
+</div>
+{% endblock %}

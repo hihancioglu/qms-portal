@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card login-card">
+  <h1>QMS Portal Giriş</h1>
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/login">
+    <label>Kullanıcı adı</label>
+    <input name="username" required autofocus>
+    <label>Şifre</label>
+    <input name="password" type="password" required>
+    <button type="submit">Giriş</button>
+  </form>
+  <p class="muted">İlk kurulum: admin / admin123. İlk iş olarak değiştirin.</p>
+</div>
+{% endblock %}

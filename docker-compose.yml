@@ -1,0 +1,57 @@
+services:
+  qms-db:
+    image: postgres:16-alpine
+    container_name: qms-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qms
+      POSTGRES_USER: qms
+      POSTGRES_PASSWORD: qms_change_me
+    volumes:
+      - qms_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qms -d qms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: qms-onlyoffice
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: "false"
+    ports:
+      - "4042:80"
+    volumes:
+      - qms_onlyoffice_data:/var/www/onlyoffice/Data
+      - qms_onlyoffice_log:/var/log/onlyoffice
+
+  qms-web:
+    build: .
+    container_name: qms-web
+    restart: unless-stopped
+    depends_on:
+      qms-db:
+        condition: service_healthy
+      onlyoffice:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+psycopg2://qms:qms_change_me@qms-db:5432/qms
+      APP_SECRET: change_this_secret
+      PUBLIC_BASE_URL: http://localhost:8080
+      ONLYOFFICE_PUBLIC_URL: http://localhost:8082
+      ONLYOFFICE_INTERNAL_URL: http://onlyoffice
+      STORAGE_DIR: /app/storage
+      INITIAL_ADMIN_USER: admin
+      INITIAL_ADMIN_PASSWORD: admin123
+    ports:
+      - "4040:8000"
+    volumes:
+      - qms_storage:/app/storage
+
+volumes:
+  qms_pgdata:
+  qms_storage:
+  qms_onlyoffice_data:
+  qms_onlyoffice_log:
