@@ -10,6 +10,6 @@
     <input name="password" type="password" required>
     <button type="submit">Giriş</button>
   </form>
-  <p class="muted">İlk kurulum: admin / admin123. İlk iş olarak değiştirin.</p>
+  <p class="muted">{% if ldap_enabled %}AD hesabınızla veya yerel admin hesabıyla giriş yapın.{% else %}İlk kurulum: admin / admin123. İlk iş olarak değiştirin.{% endif %}</p>
 </div>
 {% endblock %}

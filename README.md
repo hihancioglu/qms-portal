@@ -13,6 +13,7 @@ Bu proje Linux Docker üzerinde host edilecek şekilde hazırlanmış minimum QM
 - Audit log
 - Okudum/anladım takibi
 - Basit kullanıcı ve rol yönetimi
+- Active Directory / LDAP login ve kullanıcı senkronizasyonu
 
 ## Roller
 
@@ -42,6 +43,19 @@ Varsayılan erişim:
 admin / admin123
 ```
 
+LDAP/AD entegrasyonu için `qms-web` ortam değişkenleri:
+
+```text
+LDAP_SERVER=ldap://10.0.0.201
+LDAP_DOMAIN=BAYLAN
+LDAP_USER=servis_kullanici
+LDAP_PASSWORD=servis_kullanici_sifresi
+LDAP_BASE_DN=DC=baylan,DC=local
+LDAP_SEARCH_FILTER=(&(objectClass=user)(objectCategory=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
+```
+
+AD ile giriş yapan kullanıcı yerel kullanıcı tablosuna otomatik eklenir. İlk rolü `viewer` olur; admin kullanıcı rolü daha sonra Kullanıcılar ekranından yönetir. Adminler aynı ekrandaki AD senkronizasyon butonu ile aktif AD kullanıcılarını toplu olarak içeri alabilir.
+
 İlk iş olarak `docker-compose.yml` içindeki şu değerleri değiştirin:
 
 ```text
@@ -49,6 +63,7 @@ POSTGRES_PASSWORD
 DATABASE_URL içindeki şifre
 APP_SECRET
 INITIAL_ADMIN_PASSWORD
+LDAP_PASSWORD
 PUBLIC_BASE_URL
 ONLYOFFICE_PUBLIC_URL
 ```
@@ -81,7 +96,6 @@ ONLYOFFICE container'ı, QMS portalın `/files/revision/{id}` adresine erişebil
 
 Bu ilk sürüm üretim kullanımına doğrudan alınacak nihai sistem değildir. Şu alanlar sonraki fazda güçlendirilmelidir:
 
-- Active Directory / LDAP login
 - Departman bazlı yetki matrisi
 - ONLYOFFICE JWT güvenliği
 - PDF'e otomatik dönüştürme

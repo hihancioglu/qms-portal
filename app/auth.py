@@ -1,5 +1,6 @@
 from fastapi import Request, HTTPException
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 from sqlalchemy.orm import Session
 from .models import User
 
@@ -9,7 +10,10 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
+    try:
+        return pwd_context.verify(password, password_hash)
+    except (UnknownHashError, ValueError):
+        return False
 
 def get_current_user(request: Request, db: Session) -> User:
     user_id = request.session.get("user_id")

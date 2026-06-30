@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from .db import Base, engine, get_db, SessionLocal
 from .models import Approval, AuditLog, Document, ReadReceipt, Revision, User
 from .auth import get_current_user, hash_password, require_roles, verify_password
+from .ldap import LDAP_PASSWORD_HASH, authenticate_ldap_user, ldap_enabled, list_ldap_users
 from .services import audit, make_new_revision_no, publish_revision, save_upload
 
 APP_SECRET = os.getenv("APP_SECRET", "dev-secret")
@@ -56,12 +57,37 @@ def index(request: Request, db: Session = Depends(get_db), q: str = ""):
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse("login.html", {"request": request, "error": None, "ldap_enabled": ldap_enabled()})
 
 @app.post("/login")
 def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.username == username))
-    if not user or not verify_password(password, user.password_hash):
+    normalized_username = username.strip().split("\\")[-1].split("@")[0].lower()
+    ldap_user = authenticate_ldap_user(normalized_username, password)
+    authenticated_by_ldap = ldap_user is not None
+    if ldap_user:
+        user = db.scalar(select(User).where(User.username == ldap_user.username))
+        if not user:
+            user = User(
+                username=ldap_user.username,
+                full_name=ldap_user.full_name,
+                password_hash=LDAP_PASSWORD_HASH,
+                role="viewer",
+                department=ldap_user.department,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            user.full_name = ldap_user.full_name
+            user.department = ldap_user.department
+            if user.password_hash == LDAP_PASSWORD_HASH:
+                user.is_active = True
+            db.commit()
+            db.refresh(user)
+    else:
+        user = db.scalar(select(User).where(User.username == normalized_username))
+
+    if not user or not user.is_active or (not authenticated_by_ldap and not verify_password(password, user.password_hash)):
         return templates.TemplateResponse("login.html", {"request": request, "error": "Kullanıcı adı veya şifre hatalı"}, status_code=401)
     request.session["user_id"] = user.id
     audit(db, user, "login", "user", user.id, "User logged in", request)
@@ -80,7 +106,17 @@ def users_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     require_roles(user, "admin")
     users = db.scalars(select(User).order_by(User.username)).all()
-    return templates.TemplateResponse("users.html", {"request": request, "user": user, "users": users})
+    return templates.TemplateResponse(
+        "users.html",
+        {
+            "request": request,
+            "user": user,
+            "users": users,
+            "ldap_enabled": ldap_enabled(),
+            "message": request.query_params.get("message"),
+            "error": request.query_params.get("error"),
+        },
+    )
 
 @app.post("/users")
 def create_user(request: Request, username: str = Form(...), full_name: str = Form(...), password: str = Form(...), role: str = Form(...), department: str = Form(""), db: Session = Depends(get_db)):
@@ -93,6 +129,38 @@ def create_user(request: Request, username: str = Form(...), full_name: str = Fo
     db.commit()
     audit(db, user, "create_user", "user", new_user.id, f"Created user {username}", request)
     return RedirectResponse("/users", status_code=303)
+
+@app.post("/users/sync-ldap")
+def sync_ldap_users(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    require_roles(user, "admin")
+    if not ldap_enabled():
+        return RedirectResponse("/users?error=LDAP%20ayarlar%C4%B1%20eksik", status_code=303)
+    ldap_users = list_ldap_users()
+    created = 0
+    updated = 0
+    for ldap_user in ldap_users:
+        existing = db.scalar(select(User).where(User.username == ldap_user.username))
+        if existing:
+            existing.full_name = ldap_user.full_name
+            existing.department = ldap_user.department
+            if existing.password_hash == LDAP_PASSWORD_HASH:
+                existing.is_active = True
+            updated += 1
+            continue
+        db.add(
+            User(
+                username=ldap_user.username,
+                full_name=ldap_user.full_name,
+                password_hash=LDAP_PASSWORD_HASH,
+                role="viewer",
+                department=ldap_user.department,
+            )
+        )
+        created += 1
+    db.commit()
+    audit(db, user, "sync_ldap_users", "user", None, f"LDAP sync: {created} created, {updated} updated", request)
+    return RedirectResponse(f"/users?message=LDAP%20senkronizasyonu:%20{created}%20yeni,%20{updated}%20g%C3%BCncellendi", status_code=303)
 
 @app.get("/documents/new", response_class=HTMLResponse)
 def new_document_page(request: Request, db: Session = Depends(get_db)):

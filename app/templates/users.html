@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Kullanıcılar</h1>
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert">{{ error }}</div>{% endif %}
+{% if ldap_enabled %}
+<section class="card">
+  <form method="post" action="/users/sync-ldap">
+    <button type="submit">AD kullanıcılarını senkronize et</button>
+  </form>
+</section>
+{% endif %}
 <section class="card">
   <form method="post" action="/users" class="grid-form">
     <label>Kullanıcı adı<input name="username" required></label>

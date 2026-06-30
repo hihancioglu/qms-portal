@@ -45,6 +45,12 @@ services:
       STORAGE_DIR: /app/storage
       INITIAL_ADMIN_USER: admin
       INITIAL_ADMIN_PASSWORD: admin123
+      LDAP_SERVER: ldap://10.0.0.201
+      LDAP_DOMAIN: BAYLAN
+      LDAP_USER: mirketmfa
+      LDAP_PASSWORD: change_this_ldap_password
+      LDAP_BASE_DN: DC=baylan,DC=local
+      LDAP_SEARCH_FILTER: "(&(objectClass=user)(objectCategory=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
     ports:
       - "4040:8000"
     volumes:
